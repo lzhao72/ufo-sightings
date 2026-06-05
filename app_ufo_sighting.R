@@ -21,30 +21,47 @@ library(rsconnect)
 # 1. Read and prepare data
 # ------------------------------------------------------------
 
-ufo <- read_csv("us_ufo_sighting.csv", show_col_types = FALSE) %>%
-  rename_with(~ str_trim(.x)) %>%
-  rename_with(tolower) %>%
-  mutate(
-    event_date = coalesce(
-      ymd(event_date, quiet = TRUE),
-      mdy(event_date, quiet = TRUE)
-    ),
-    year = as.numeric(year),
-    month = as.numeric(month),
-    hour = as.numeric(hour),
-    duration_sec = as.numeric(duration_sec),
-    state = toupper(as.character(state)),
-    city = as.character(city),
-    shape10 = as.character(shape10),
-    shape10 = if_else(is.na(shape10) | shape10 == "", "other", shape10),
-    shape10 = str_to_title(shape10)
-  ) %>%
-  filter(
-    !is.na(year),
-    !is.na(state),
-    !is.na(shape10),
-    year >= 1950
-  )
+csv_path <- "us_ufo_sighting.csv"
+cache_path <- "us_ufo_sighting_cache.rds"
+
+load_ufo_data <- function(csv_file = csv_path, cache_file = cache_path) {
+  cache_is_current <- file.exists(cache_file) &&
+    file.info(cache_file)$mtime >= file.info(csv_file)$mtime
+
+  if (cache_is_current) {
+    return(readRDS(cache_file))
+  }
+
+  prepared_data <- read_csv(csv_file, show_col_types = FALSE) %>%
+    rename_with(~ str_trim(.x)) %>%
+    rename_with(tolower) %>%
+    mutate(
+      event_date = coalesce(
+        ymd(event_date, quiet = TRUE),
+        mdy(event_date, quiet = TRUE)
+      ),
+      year = as.numeric(year),
+      month = as.numeric(month),
+      hour = as.numeric(hour),
+      duration_sec = as.numeric(duration_sec),
+      state = toupper(as.character(state)),
+      city = as.character(city),
+      shape10 = as.character(shape10),
+      shape10 = if_else(is.na(shape10) | shape10 == "", "other", shape10),
+      shape10 = str_to_title(shape10)
+    ) %>%
+    filter(
+      !is.na(year),
+      !is.na(state),
+      !is.na(shape10),
+      year >= 1950
+    )
+
+  saveRDS(prepared_data, cache_file)
+  prepared_data
+}
+
+ufo <- load_ufo_data()
 
 # Filter values
 state_choices <- sort(unique(ufo$state))
@@ -90,14 +107,16 @@ extra_colors <- c(
   "#0099C6", "#DD4477", "#66AA00", "#B82E2E", "#316395"
 )
 
-base_plot_theme <- function(base_size = 11) {
+base_plot_theme <- function(base_size = 10) {
   theme_minimal(base_size = base_size) +
     theme(
-      plot.title = element_text(face = "bold", color = "#0F172A"),
-      axis.title = element_text(face = "bold", color = "#334155"),
-      axis.text = element_text(color = "#475569"),
-      axis.title.x = element_text(margin = margin(t = 18)),
+      plot.title = element_text(face = "bold", color = "#0F172A", size = base_size + 2),
+      axis.title = element_text(face = "bold", color = "#334155", size = base_size),
+      axis.text = element_text(color = "#475569", size = base_size - 1),
+      axis.title.x = element_text(margin = margin(t = 28)),
       axis.title.y = element_text(margin = margin(r = 30)),
+      legend.title = element_text(face = "bold", color = "#334155", size = base_size),
+      legend.text = element_text(color = "#475569", size = base_size - 1),
       panel.grid.minor = element_blank(),
       panel.grid.major = element_line(color = "#E2E8F0", linewidth = 0.35),
       plot.margin = margin(18, 28, 22, 28)
@@ -108,22 +127,23 @@ polish_plotly <- function(
     plot,
     x_title,
     y_title,
-    left = 88,
-    right = 24,
-    bottom = 72,
+    left = 96,
+    right = 30,
+    bottom = 92,
     top = 12,
     y_tick_standoff = 6) {
   plot %>%
     layout(
+      font = list(family = "Inter", size = 11, color = "#334155"),
       margin = list(l = left, r = right, b = bottom, t = top),
       xaxis = list(
         automargin = TRUE,
-        title = list(text = x_title, standoff = 18)
+        title = list(text = paste0("<b>", x_title, "</b>"), standoff = 30)
       ),
       yaxis = list(
         automargin = TRUE,
         ticklabelstandoff = y_tick_standoff,
-        title = list(text = y_title, standoff = 26)
+        title = list(text = paste0("<b>", y_title, "</b>"), standoff = 26)
       )
     ) %>%
     config(displayModeBar = FALSE)
@@ -153,11 +173,21 @@ ui <- page_sidebar(
     tags$style(HTML("
       body {
         color: #0F172A;
+        font-size: 12px;
+        background: #F8FAFC;
+      }
+      .bslib-page-sidebar {
+        gap: 12px;
+        padding: 14px 16px;
+      }
+      .bslib-sidebar-layout {
+        --bslib-sidebar-main-margin: 12px;
       }
       .bslib-sidebar-layout > .sidebar {
         background: linear-gradient(180deg, #08233F 0%, #0B3558 100%);
         color: white;
         border-right: 0;
+        padding: 14px 12px;
       }
       .sidebar label,
       .sidebar h2,
@@ -165,11 +195,37 @@ ui <- page_sidebar(
       .sidebar p {
         color: white;
       }
+      .sidebar h2 {
+        font-size: 15px;
+        line-height: 1.2;
+        margin-bottom: 4px;
+      }
+      .sidebar h4 {
+        font-size: 12px;
+        line-height: 1.2;
+        margin: 12px 0 8px 0;
+      }
+      .sidebar p,
+      .sidebar label,
+      .form-label,
+      .control-label {
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .sidebar p {
+        margin-bottom: 10px;
+      }
+      .sidebar hr {
+        margin: 12px 0;
+      }
       .sidebar .form-select,
       .sidebar .form-control {
         background-color: #0D3B63;
         color: white;
         border-color: #4B6B88;
+        min-height: 30px;
+        padding: 4px 8px;
+        font-size: 11px;
       }
       .sidebar .irs--shiny .irs-bar,
       .sidebar .irs--shiny .irs-single {
@@ -179,39 +235,49 @@ ui <- page_sidebar(
       .card {
         border: 0;
         border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-        margin-bottom: 18px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.07);
+        margin-bottom: 12px;
+      }
+      .card-body {
+        padding: 12px 14px 14px 14px;
       }
       .card-header {
         background: #FFFFFF;
         border-bottom: 1px solid #E2E8F0;
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.2;
         font-weight: 700;
         color: #0F172A;
       }
       .value-box {
         border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.07);
       }
       .bslib-value-box,
       .value-box {
-        min-height: 126px;
+        min-height: 82px;
         background: #FFFFFF !important;
         color: #0F172A !important;
+      }
+      .bslib-value-box .value-box-area,
+      .value-box .value-box-area {
+        padding: 12px 14px !important;
       }
       .bslib-value-box .value-box-title,
       .value-box .value-box-title {
         color: #475569 !important;
-        font-size: 0.88rem;
+        font-size: 11px;
         font-weight: 700;
-        line-height: 1.18;
-        min-height: 2.1em;
+        line-height: 1.15;
+        min-height: 1.35em;
         text-transform: none;
         letter-spacing: 0;
       }
       .bslib-value-box .value-box-value,
       .value-box .value-box-value {
         color: #0F172A !important;
-        font-size: clamp(1.05rem, 1.45vw, 1.55rem);
+        font-size: clamp(1rem, 1.2vw, 1.35rem);
         font-weight: 800;
         line-height: 1.12;
         overflow-wrap: anywhere;
@@ -222,6 +288,8 @@ ui <- page_sidebar(
         opacity: 0.95;
       }
       .nav-tabs .nav-link {
+        padding: 8px 12px;
+        font-size: 12px;
         font-weight: 600;
       }
       .dataTables_wrapper {
@@ -289,13 +357,18 @@ ui <- page_sidebar(
       }
       .source-note {
         color: #475569;
-        font-size: 12px;
-        padding: 8px 2px 2px 2px;
+        font-size: 10px;
+        padding: 4px 2px 0 2px;
       }
       .sidebar-actions {
         display: grid;
-        gap: 8px;
-        margin-top: 12px;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .sidebar-actions .btn {
+        min-height: 30px;
+        padding: 5px 9px;
+        font-size: 11px;
       }
       .sidebar-actions .btn,
       .sidebar-actions .form-control {
@@ -311,7 +384,7 @@ ui <- page_sidebar(
   ),
 
   sidebar = sidebar(
-    width = 310,
+    width = 220,
 
     h2("UFO sightings dashboard"),
     p("Explore UFO sightings reported in the United States from 1950 onward."),
@@ -357,12 +430,13 @@ ui <- page_sidebar(
         inputId = "reset_filter",
         label = "Reset filters",
         icon = icon("rotate-left"),
-        class = "btn-outline-light"
+        class = "btn-primary"
       ),
 
       downloadButton(
         outputId = "download_data",
-        label = "Download filtered data"
+        label = "Download filtered data",
+        class = "btn-primary"
       )
     )
   ),
@@ -413,27 +487,27 @@ ui <- page_sidebar(
       layout_columns(
         card(
           card_header("Sightings over time"),
-          plotlyOutput("year_plot", height = "410px")
+          plotlyOutput("year_plot", height = "440px")
         ),
 
         card(
           card_header("Sightings by shape"),
-          plotlyOutput("shape_plot", height = "410px")
+          plotlyOutput("shape_plot", height = "440px")
         ),
 
         col_widths = c(6, 6),
-        gap = "18px"
+        gap = "12px"
       ),
 
       layout_columns(
         card(
           card_header("Top states/territories by sightings"),
-          plotOutput("state_pie", height = "390px")
+          plotOutput("state_pie", height = "420px")
         ),
 
         card(
           card_header("U.S. map of sightings by state/territory"),
-          plotOutput("state_map", height = "430px")
+          plotOutput("state_map", height = "450px")
         ),
 
         card(
@@ -442,7 +516,7 @@ ui <- page_sidebar(
         ),
 
         col_widths = c(4, 4, 4),
-        gap = "22px"
+        gap = "12px"
       ),
 
       div(
@@ -460,31 +534,31 @@ ui <- page_sidebar(
       layout_columns(
         card(
           card_header("Shape distribution"),
-          plotlyOutput("shape_dist", height = "420px")
+          plotlyOutput("shape_dist", height = "440px")
         ),
 
         card(
           card_header("Shape trends over time"),
-          plotlyOutput("shape_trend", height = "420px")
+          plotlyOutput("shape_trend", height = "440px")
         ),
 
         col_widths = c(5, 7),
-        gap = "18px"
+        gap = "12px"
       ),
 
       layout_columns(
         card(
           card_header("Duration histogram"),
-          plotlyOutput("duration_hist", height = "420px")
+          plotlyOutput("duration_hist", height = "440px")
         ),
 
         card(
           card_header("Duration by shape"),
-          plotlyOutput("duration_box", height = "420px")
+          plotlyOutput("duration_box", height = "440px")
         ),
 
         col_widths = c(6, 6),
-        gap = "18px"
+        gap = "12px"
       ),
 
       div(
@@ -613,7 +687,7 @@ server <- function(input, output, session) {
       polish_plotly(
         x_title = "Year",
         y_title = "Number of sightings",
-        bottom = 52
+        bottom = 70
       )
   })
 
@@ -648,7 +722,7 @@ server <- function(input, output, session) {
         x_title = "Number of sightings",
         y_title = "Shape",
         left = 138,
-        bottom = 52,
+        bottom = 70,
         y_tick_standoff = 24
       )
   })
@@ -688,12 +762,12 @@ server <- function(input, output, session) {
       base_plot_theme(base_size = 10) +
       theme(
         legend.position = "none",
-        axis.text.y = element_text(size = 11.5, margin = margin(r = 10)),
-        axis.text.x = element_text(size = 10.5),
-        axis.title.x = element_text(size = 11.5, margin = margin(t = 12)),
+        axis.text.y = element_text(size = 10, margin = margin(r = 12)),
+        axis.text.x = element_text(size = 9),
+        axis.title.x = element_text(size = 10, margin = margin(t = 26)),
         axis.title.y = element_text(margin = margin(r = 30)),
         panel.grid.major.y = element_blank(),
-        plot.margin = margin(14, 54, 22, 28)
+        plot.margin = margin(18, 64, 24, 32)
       )
   })
 
@@ -734,7 +808,7 @@ server <- function(input, output, session) {
         legend.title = element_text(face = "bold", color = "#334155", size = 12),
         legend.text = element_text(color = "#475569", size = 11),
         panel.background = element_rect(fill = "white", color = NA),
-        plot.margin = margin(-16, -10, -16, -34)
+        plot.margin = margin(8, 12, 8, 12)
       )
   })
 
@@ -847,7 +921,7 @@ server <- function(input, output, session) {
         x_title = "Duration in seconds",
         y_title = "Shape",
         left = 122,
-        bottom = 86
+        bottom = 96
       )
   })
 
@@ -864,7 +938,7 @@ server <- function(input, output, session) {
       arrange(desc(Date)) %>%
       datatable(
         options = list(
-          pageLength = 6,
+          pageLength = 10,
           scrollX = FALSE,
           autoWidth = FALSE,
           dom = "tip",
