@@ -148,7 +148,7 @@ custom_css <- "
     border-bottom: 1px solid var(--bs-border-color);
     padding: 8px 16px;
   }
-  [data-app-theme="light"] #filter-bar { background: #b8dcf8; }
+  [data-app-theme='light'] #filter-bar { background: #b8dcf8; }
   .filter-inner {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     max-width: 1400px; margin: 0 auto;
@@ -200,7 +200,7 @@ custom_css <- "
     border: 1px solid var(--bs-border-color);
     border-radius: 10px; padding: 20px;
   }
-  [data-app-theme="light"] .kpi-card { background: #e8f4ff; }
+  [data-app-theme='light'] .kpi-card { background: #e8f4ff; }
   .kpi-value {
     font-family: 'Courier New', 'Lucida Console', monospace;
     font-size: 1.55rem; font-weight: 700; line-height: 1;
@@ -220,7 +220,7 @@ custom_css <- "
     border: 1px solid var(--bs-border-color);
     border-radius: 10px; padding: 16px; margin-bottom: 14px;
   }
-  [data-app-theme="light"] .chart-card { background: #e8f4ff; }
+  [data-app-theme='light'] .chart-card { background: #e8f4ff; }
   .chart-title {
     font-size: 0.72rem; color: var(--bs-secondary-color);
     text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
@@ -258,16 +258,16 @@ custom_css <- "
     border-bottom: 1px solid var(--bs-border-color) !important;
     font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
   }
-  [data-app-theme="light"] table.dataTable thead th { background: #b8dcf8 !important; }
+  [data-app-theme='light'] table.dataTable thead th { background: #b8dcf8 !important; }
   table.dataTable tbody td {
     border-color: var(--bs-border-color) !important; font-size: 0.8rem;
     background: #161b22;
   }
   table.dataTable tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
-  [data-app-theme="light"] table.dataTable tbody td { background: #e8f4ff !important; }
-  [data-app-theme="light"] table.dataTable tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02) !important; }
+  [data-app-theme='light'] table.dataTable tbody td { background: #e8f4ff !important; }
+  [data-app-theme='light'] table.dataTable tbody tr:nth-child(even) td { background: rgba(0,0,0,0.02) !important; }
   table.dataTable tbody tr:hover td { background: #1c2230 !important; }
-  [data-app-theme="light"] table.dataTable tbody tr:hover td { background: #d4ecff !important; }
+  [data-app-theme='light'] table.dataTable tbody tr:hover td { background: #d4ecff !important; }
   .dataTables_info, .dataTables_paginate {
     color: var(--bs-secondary-color) !important; font-size: 0.75rem !important;
   }
