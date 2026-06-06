@@ -212,7 +212,7 @@ custom_css <- "
   }
   .kpi-label {
     font-size: 0.7rem; color: var(--bs-secondary-color);
-    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 10px;
   }
   .kpi-card:nth-child(1) .kpi-value { color: #58a6ff; }
   .kpi-card:nth-child(2) .kpi-value { color: #3fb950; }
@@ -611,7 +611,7 @@ server <- function(input, output, session) {
         plot_bgcolor = t$bg, paper_bgcolor = t$paper,
         font = list(color = t$fc, size = 12, family = CHART_FONT), showlegend = FALSE,
         margin = list(l = 0, r = 10, t = 10, b = 0, pad = 8),
-        xaxis = ax(t), yaxis = ax(t)
+        xaxis = ax(t), yaxis = ax(t, categoryorder = "total descending")
       ) |>
       config(displayModeBar = FALSE)
   })
