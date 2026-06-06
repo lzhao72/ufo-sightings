@@ -52,7 +52,8 @@ df <- read_csv("us_ufo_sighting.csv", show_col_types = FALSE) |>
   mutate(
     shape10 = str_to_lower(str_trim(as.character(shape10))),
     shape10 = if_else(is.na(shape10) | shape10 %in% c("", "na", "NA"),
-                      "unknown", shape10)
+                      "unknown", shape10),
+    shape10 = str_to_sentence(shape10)
   ) |>
   filter(!is.na(duration_sec), duration_sec > 0, duration_sec <= MAX_DUR_SEC) |>
   mutate(duration_min = duration_sec / 60) |>
@@ -178,11 +179,15 @@ custom_css <- "
     line-height: 1.5;
   }
   #theme_btn_el:hover { background: rgba(247,201,72,0.12); }
+  [data-app-theme='light'] #theme_btn_el {
+    border-color: #0969da; color: #0969da;
+  }
+  [data-app-theme='light'] #theme_btn_el:hover { background: rgba(9,105,218,0.12); }
 
   /* ── Header ──────────────────────────────────────────── */
   .dash-header { padding: 20px 16px 10px; max-width: 1400px; margin: 0 auto; }
   .dash-header h1 {
-    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size: 1.75rem; color: var(--bs-primary); letter-spacing: 0.04em;
   }
   .dash-header p { font-size: 0.75rem; color: var(--bs-secondary-color); margin-top: 4px; }
@@ -202,7 +207,7 @@ custom_css <- "
   }
   [data-app-theme='light'] .kpi-card { background: #e8f4ff; }
   .kpi-value {
-    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-size: 1.55rem; font-weight: 700; line-height: 1;
   }
   .kpi-label {
@@ -310,8 +315,7 @@ ui <- page_fluid(
 
   # Header
   div(class = "dash-header",
-    h1(HTML("&#x1F6F8; UFO Sightings Dashboard")),
-    p("US reported sightings · use filters to explore by state/territory and year range")
+    h1(HTML("&#x1F6F8; UFO Sightings Dashboard"))
   ),
 
   # Sticky filter bar
@@ -562,7 +566,7 @@ server <- function(input, output, session) {
         plot_bgcolor = t$bg, paper_bgcolor = t$paper,
         font = list(color = t$fc, size = 12, family = CHART_FONT), showlegend = FALSE,
         margin = list(l = 0, r = 10, t = 10, b = 0, pad = 8),
-        xaxis = ax(t), yaxis = ax(t)
+        xaxis = ax(t), yaxis = ax(t, categoryorder = "total ascending")
       ) |>
       config(displayModeBar = FALSE)
   })
