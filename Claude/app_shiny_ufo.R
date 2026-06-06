@@ -59,16 +59,16 @@ df <- read_csv("us_ufo_sighting.csv", show_col_types = FALSE) |>
   filter(!is.na(Year)) |>
   mutate(Year = as.integer(Year))
 
+required_cols <- c("Event_Date", "City", "Month", "Day", "Hour",
+                   "State", "shape10", "duration_sec", "Year")
+missing_cols <- setdiff(required_cols, names(df))
+if (length(missing_cols) > 0)
+  stop("CSV is missing required columns: ", paste(missing_cols, collapse = ", "))
+
 detail <- df |>
   group_by(State, Year, shape10, Hour) |>
   summarise(count = n(), sum_dur_min = sum(duration_min, na.rm = TRUE),
             .groups = "drop")
-
-recent_raw <- df |>
-  arrange(desc(Year), desc(Month), desc(Day)) |>
-  head(400) |>
-  select(Event_Date, City, State, shape10, duration_sec) |>
-  mutate(across(everything(), ~ replace_na(as.character(.), "—")))
 
 all_states <- sort(unique(df$State))
 year_min   <- min(df$Year, na.rm = TRUE)
@@ -442,8 +442,15 @@ server <- function(input, output, session) {
 
   filt_recent <- reactive({
     req(input$state_sel)
-    if (input$state_sel == "ALL") recent_raw
-    else filter(recent_raw, State == input$state_sel)
+    yf <- if (is.null(input$year_from) || is.na(input$year_from)) year_min else as.integer(input$year_from)
+    yt <- if (is.null(input$year_to)   || is.na(input$year_to))   year_max else as.integer(input$year_to)
+    d <- df |> filter(Year >= yf, Year <= yt)
+    if (input$state_sel != "ALL") d <- filter(d, State == input$state_sel)
+    d |>
+      arrange(desc(Year), desc(Month), desc(Day)) |>
+      head(400) |>
+      select(Event_Date, City, State, shape10, duration_sec) |>
+      mutate(across(everything(), ~ replace_na(as.character(.), "—")))
   })
 
   th <- reactive(pth(is_dark()))
@@ -512,17 +519,19 @@ server <- function(input, output, session) {
 
   # ── Chart 3: Hour of Day ─────────────────────────────────────────────────
   output$chart_hour <- renderPlotly({
-    d <- filt_detail() |>
+    t <- th()
+    fd <- filt_detail()
+    if (!nrow(fd)) return(nodata_plot(t))
+    d <- fd |>
       group_by(Hour) |> summarise(n = sum(count)) |>
       right_join(tibble(Hour = 0:23), by = "Hour") |>
-      mutate(n = replace_na(n, 0L)) |>
+      mutate(n = replace_na(n, 0)) |>
       arrange(Hour) |>
       mutate(label = case_when(
         Hour == 0  ~ "12am", Hour == 12 ~ "12pm",
         Hour < 12  ~ paste0(Hour, "am"),
         TRUE       ~ paste0(Hour - 12, "pm")
       ))
-    t <- th()
     plot_ly(d, x = ~label, y = ~n, type = "bar",
       marker = list(color = COLORS[5]),
       hovertemplate = "%{x}: %{y:,}<extra></extra>"
