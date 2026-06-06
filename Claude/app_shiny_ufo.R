@@ -485,14 +485,7 @@ server <- function(input, output, session) {
     d <- filt_detail() |> group_by(Year) |> summarise(n = sum(count)) |> arrange(Year)
     t <- th()
     if (!nrow(d)) return(nodata_plot(t))
-    lbl <- function(yr, n, anchor)
-      list(x = yr, y = n, text = as.character(yr), showarrow = FALSE,
-           xanchor = anchor, yanchor = "bottom", yshift = 8,
-           font = list(color = t$fc, size = 11, family = CHART_FONT))
-    annots <- if (nrow(d) == 1)
-      list(lbl(d$Year[1], d$n[1], "center"))
-    else
-      list(lbl(d$Year[1], d$n[1], "left"), lbl(d$Year[nrow(d)], d$n[nrow(d)], "right"))
+    tick_yrs <- unique(c(d$Year[1], d$Year[nrow(d)]))
     plot_ly(d, x = ~Year, y = ~n, type = "scatter", mode = "lines+markers",
       line   = list(color = COLORS[1], width = 2),
       marker = list(color = COLORS[1], size = 5),
@@ -503,8 +496,8 @@ server <- function(input, output, session) {
         plot_bgcolor = t$bg, paper_bgcolor = t$paper,
         font = list(color = t$fc, size = 12, family = CHART_FONT), showlegend = FALSE,
         margin = list(l = 0, r = 10, t = 10, b = 0, pad = 8),
-        xaxis = ax(t), yaxis = ax(t),
-        annotations = annots
+        xaxis = ax(t, tickvals = tick_yrs, ticktext = as.character(tick_yrs)),
+        yaxis = ax(t)
       ) |>
       config(displayModeBar = FALSE)
   })
