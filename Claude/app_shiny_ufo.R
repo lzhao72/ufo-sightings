@@ -485,6 +485,14 @@ server <- function(input, output, session) {
     d <- filt_detail() |> group_by(Year) |> summarise(n = sum(count)) |> arrange(Year)
     t <- th()
     if (!nrow(d)) return(nodata_plot(t))
+    lbl <- function(yr, n, anchor)
+      list(x = yr, y = n, text = as.character(yr), showarrow = FALSE,
+           xanchor = anchor, yanchor = "bottom", yshift = 8,
+           font = list(color = t$fc, size = 11, family = CHART_FONT))
+    annots <- if (nrow(d) == 1)
+      list(lbl(d$Year[1], d$n[1], "center"))
+    else
+      list(lbl(d$Year[1], d$n[1], "left"), lbl(d$Year[nrow(d)], d$n[nrow(d)], "right"))
     plot_ly(d, x = ~Year, y = ~n, type = "scatter", mode = "lines+markers",
       line   = list(color = COLORS[1], width = 2),
       marker = list(color = COLORS[1], size = 5),
@@ -495,7 +503,8 @@ server <- function(input, output, session) {
         plot_bgcolor = t$bg, paper_bgcolor = t$paper,
         font = list(color = t$fc, size = 12, family = CHART_FONT), showlegend = FALSE,
         margin = list(l = 0, r = 10, t = 10, b = 0, pad = 8),
-        xaxis = ax(t), yaxis = ax(t)
+        xaxis = ax(t), yaxis = ax(t),
+        annotations = annots
       ) |>
       config(displayModeBar = FALSE)
   })
@@ -558,6 +567,8 @@ server <- function(input, output, session) {
       arrange(avg_dur)
     t <- th()
     if (!nrow(d)) return(nodata_plot(t))
+    cat_order <- c(d$shape10[d$shape10 == "Other"],
+                   d$shape10[d$shape10 != "Other"])
     plot_ly(d, x = ~round(avg_dur, 1), y = ~shape10, type = "bar", orientation = "h",
       marker = list(color = COLORS[4]),
       hovertemplate = "%{y}: %{x} min<extra></extra>"
@@ -566,7 +577,7 @@ server <- function(input, output, session) {
         plot_bgcolor = t$bg, paper_bgcolor = t$paper,
         font = list(color = t$fc, size = 12, family = CHART_FONT), showlegend = FALSE,
         margin = list(l = 0, r = 10, t = 10, b = 0, pad = 8),
-        xaxis = ax(t), yaxis = ax(t, categoryorder = "total ascending")
+        xaxis = ax(t), yaxis = ax(t, categoryorder = "array", categoryarray = cat_order)
       ) |>
       config(displayModeBar = FALSE)
   })
